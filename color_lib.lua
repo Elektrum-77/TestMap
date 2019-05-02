@@ -17,9 +17,9 @@ local Color =
   
 love.graphics.setBackgroundColor(Color.GreyDark)
 
-SetColor = love.graphics.setColor
+Color.Set = love.graphics.setColor
 
-Color.alpha = function(color_value, a)
+Color.Alpha = function(color_value, a)
   local c = color_value
   c[4] = a
   return c
