@@ -41,7 +41,7 @@ function love.load()
       Speed = 128,
       Angle = {0, math.pi/2, math.pi/4,math.pi, nil, 3*math.pi/4, math.pi/2, 3*math.pi/2, 7*math.pi/4, nil, 0, 5*math.pi/4, 3*math.pi/2, math.pi, nil},
       Draw = function(self)
-        SetColor(Color.Green)
+        Color.Set(Color.Green)
         love.graphics.rectangle("fill", ScreenWidth/2 - 8, ScreenHeight/2 -28, 16, 32)
       end,
       Update = function(self, dt)
@@ -84,7 +84,7 @@ function love.load()
       TurningSpeed = math.pi/4, --in rad/sec
       Angle = 0,
       Draw = function(self)
-        SetColor(Color.White)
+        Color.Set(Color.White)
         love.graphics.rectangle("fill", self.NextStop.X - Game.Player.X-1, self.NextStop.Y - Game.Player.Y-1, 3, 3)
         love.graphics.circle("fill", self.X - Game.Player.X, self.Y - Game.Player.Y, 8)
       end,
@@ -129,7 +129,7 @@ function love.load()
       Timer = 0,
       Path = dofile "Path.lua",
       Draw = function(self)
-        SetColor(Color.Orange)
+        Color.Set(Color.Orange)
         for k,v in ipairs(self.Path) do
           love.graphics.rectangle("fill", v.X - Game.Player.X, v.Y - Game.Player.Y, 1, 1)
         end
@@ -165,6 +165,6 @@ function love.draw()
   end
   
   
-  SetColor(Color.White)
+  Color.Set(Color.White)
   love.graphics.rectangle("fill", ScreenWidth/2, ScreenHeight/2, 1, 1)
 end
