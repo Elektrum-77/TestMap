@@ -75,104 +75,96 @@ function love.load()
     },
     Robot = 
     {
-      X=0,
-      Y=0,
-      
-      --IsTurning = false,
-      NextNodePathID = 1,
+      X=90,
+      Y=135,
+      NextNodePathID = 2,
       MoveTimer = 0,
       Speed = 1, --
-      StepLenght = 10, --how much pixel i can go with one loop of MoveTimer/Speed
-      StepMaxNumber = 5,
+      StepLenght = 30, --how much pixel i can go with one loop of MoveTimer/Speed
+      StepMaxNumber = 1,
       StepCompletition = 0, --between 0 and 1
-      Step = {}
-      --TurningSpeed = math.pi/4, --in rad/sec
-      --Angle = 0,
+      Step = {},
       
       Draw = function(self)
         Color.Set(Color.White)
-        love.graphics.rectangle("fill", self.NextStop.X - Game.Player.X-1, self.NextStop.Y - Game.Player.Y-1, 3, 3)
+        for k,v in ipairs(self.Step) do love.graphics.rectangle("fill", v.X+v.VX*self.StepLenght - Game.Player.X-1, v.Y+v.VY*self.StepLenght - Game.Player.Y-1, 3, 3) end
         love.graphics.circle("fill", self.X - Game.Player.X, self.Y - Game.Player.Y, 8)
       end,
       
-      MoveByStep = function(self, StepPercentage)
-        self.StepCompletition = self.StepCompletition + StepPercentage
-      end,
-      
       Update = function(self, dt)
+        --Timer
+        self.MoveTimer = self.MoveTimer + dt * self.Speed
         
-        local NextX = self.X + dt * self.Speed * math.cos(self.Angle)
-        local NextY = self.Y + dt * self.Speed * math.sin(self.Angle)
-        
-        --Update Timer (loop only if necessary)
-        self.MoveTimer = self.MoveTimer + dt
-        while self.MoveTimer > 1 do
-          self.MoveTimer = self.MoveTimer - 1
-        end
-        
-        --Generate Step if necessary
-        if #self.Step <= self.StepMaxNumber then
-          
-        end
-        
-        --
-        
-        
-        
-        if (self.X - self.NextStop.X)^2 + (self.Y - self.NextStop.Y)^2 < (NextX - self.NextStop.X)^2 + (NextY - self.NextStop.Y)^2 and not self.IsTurning then
-          self.X = self.NextStop.X
-          self.Y = self.NextStop.Y
-          if self.Step >= #Game.Map.Path then self.Step = 1 else self.Step = self.Step +1 end
-          self:Init()
-        else
-          self.X = NextX
-          self.Y = NextY
-          --self.Angle = math.atan2(self.NextStop.Y - self.Y, self.NextStop.X - self.X)
-        end
+        --Movements
+        if #self.Step > 0 then
+          while self.MoveTimer > 1 do
+            self.MoveTimer = self.MoveTimer - 1
+            self.X = self.Step[1].X + self.Step[1].VX * self.StepLenght
+            self.Y = self.Step[1].Y + self.Step[1].VY * self.StepLenght
+            table.remove(self.Step, 1)
+            self:StepGeneration()
+          end
+          self.X = self.Step[1].X + self.Step[1].VX * self.MoveTimer * self.StepLenght
+          self.Y = self.Step[1].Y + self.Step[1].VY * self.MoveTimer * self.StepLenght
+        else self:StepGeneration() end
         
       end,
         
-      Init = function(self)
-        --step init with Node id NextNodePathID of Game.Map.Path
-        local Node = Game.Map.Path[NextNodePathID]
-        local StepX, StepY = self.X, self.Y
-        while (StepX - Node.X)^2 + (StepY - Node.Y)^2 > self.StepLenght and #self.Step < self.StepMaxNumber do
-          local Angle = math.atan2(self.Y - Node.Y, self.X - Node.X)
-          local Step = {
-            X = self.X,
-            Y = self.Y,
-            VX = math.cos(Angle),
-            VY = math.sin(Angle),
-          }
+      StepGeneration = function(self)
+        
+        local Node = Game.Map.Path[self.NextNodePathID]
+        local StepX, StepY
+        if #self.Step > 0 then
+          StepX = self.Step[#self.Step].X+ self.Step[#self.Step].VX*self.StepLenght
+          StepY = self.Step[#self.Step].Y+ self.Step[#self.Step].VY*self.StepLenght
+        else
+          StepX = self.X
+          StepY = self.Y
+        end
+        
+        while (StepX - Node.X)^2 + (StepY - Node.Y)^2 > self.StepLenght^2 and #self.Step < self.StepMaxNumber do
+          local Angle = math.atan2(Node.Y - StepY, Node.X - StepX)
+          local VX, VY = math.cos(Angle), math.sin(Angle)
+          local Step = {X = StepX,Y = StepY,VX = VX,VY = VY}
           table.insert(self.Step, Step)
-          StepX, StepY = Step.X, Step.Y
+          StepX = StepX+VX*self.StepLenght
+          StepY = StepY+VY*self.StepLenght
+          print(StepX, StepY)
         end
         
         if #self.Step < self.StepMaxNumber then
-          
           local Decimal = 0
           local max = 0
+          if self.NextNodePathID < #Game.Map.Path then self.NextNodePathID=self.NextNodePathID+1 else self.NextNodePathID=1 end
+          local NextNode = Game.Map.Path[self.NextNodePathID]
+          --Node = NextNode
+          --if self.NextNodePathID < #Game.Map.Path then NextNode = Game.Map.Path[self.NextNodePathID+1] else NextNode = Game.Map.Path[1] end
           
-          if NextNodePathID < #Game.Map.Path then NextNodePathID=NextNodePathID+1 else NextNodePathID=1 end
-          local NextNode = Game.Map.Path[NextNodePathID]
+          local Angle = math.atan2(NextNode.Y - Node.Y, NextNode.X - Node.X)
           
-          local Angle = math.atan2(Node.Y - NextNode.Y, Node.X - NextNode.X)
           local VX, VY = math.cos(Angle), math.sin(Angle)
+          local t = 1
           
-          while Decimal < 5 do
-            local t = 0
-            
-            while true do
-              if self.Step then
-                max = (self.Step[#self.Step].X - Node.X + VX*t)^2 + (self.Step[#self.Step].Y - Node.Y + VY*t)^2
-              else max = (self.X - Node.X + VX*t)^2 + (self.Y - Node.Y + VY*t)^2 end
-              t=t+1
-              if max > self.StepLenght then break end
+          while Decimal < 3 do
+            while max < self.StepLenght^2 do
+              if #self.Step > 0 then
+                max = (self.Step[#self.Step].X - (Node.X + VX*t))^2 + (self.Step[#self.Step].Y - (Node.Y + VY*t))^2
+              else max = (self.X - (Node.X + VX*t))^2 + (self.Y - (Node.Y + VY*t))^2 end
+              t= t + 10^(-Decimal)
             end
-            
             Decimal = Decimal+1
           end
-          
+          local X, Y
+          if #self.Step > 0 then X, Y = self.Step[#self.Step].X, self.Step[#self.Step].Y else X, Y = self.X, self.Y end
+          local Angle2 = math.atan2((Node.Y + VY*t-1) - Y, (Node.X + VX*t-1) - X)
+          local VX2, VY2 = math.cos(Angle2), math.sin(Angle2)
+          local Step = {
+            X = X,
+            Y = Y,
+            VX = VX2,
+            VY = VY2}
+          print(X, Y, 2)
+          table.insert(self.Step, Step)
         end
         
       end,
