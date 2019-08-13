@@ -73,36 +73,51 @@ function love.load()
         end
       end,
     },
-    Train = 
+    Robot = 
     {
       X=0,
       Y=0,
-      IsTurning = false,
-      NextStop = {X=0,Y=0},
-      Speed = 32,
-      Step = 5,
-      TurningSpeed = math.pi/4, --in rad/sec
-      Angle = 0,
+      
+      --IsTurning = false,
+      NextNodePathID = 1,
+      MoveTimer = 0,
+      Speed = 1, --
+      StepLenght = 10, --how much pixel i can go with one loop of MoveTimer/Speed
+      StepMaxNumber = 5,
+      StepCompletition = 0, --between 0 and 1
+      Step = {}
+      --TurningSpeed = math.pi/4, --in rad/sec
+      --Angle = 0,
+      
       Draw = function(self)
         Color.Set(Color.White)
         love.graphics.rectangle("fill", self.NextStop.X - Game.Player.X-1, self.NextStop.Y - Game.Player.Y-1, 3, 3)
         love.graphics.circle("fill", self.X - Game.Player.X, self.Y - Game.Player.Y, 8)
       end,
+      
+      MoveByStep = function(self, StepPercentage)
+        self.StepCompletition = self.StepCompletition + StepPercentage
+      end,
+      
       Update = function(self, dt)
-        
-        if self.IsTurning then
-          local angle = math.atan2(self.NextStop.Y - self.Y, self.NextStop.X - self.X)
-          local NextAngle = self.Angle + dt * self.TurningSpeed * (angle - self.Angle)/math.abs(angle - self.Angle)
-          if (angle - self.Angle)^2 < (angle - NextAngle)^2 then
-            self.IsTurning  = false
-            self.Angle = angle
-          else self.Angle = NextAngle end
-        end
-        
-        
         
         local NextX = self.X + dt * self.Speed * math.cos(self.Angle)
         local NextY = self.Y + dt * self.Speed * math.sin(self.Angle)
+        
+        --Update Timer (loop only if necessary)
+        self.MoveTimer = self.MoveTimer + dt
+        while self.MoveTimer > 1 do
+          self.MoveTimer = self.MoveTimer - 1
+        end
+        
+        --Generate Step if necessary
+        if #self.Step <= self.StepMaxNumber then
+          
+        end
+        
+        --
+        
+        
         
         if (self.X - self.NextStop.X)^2 + (self.Y - self.NextStop.Y)^2 < (NextX - self.NextStop.X)^2 + (NextY - self.NextStop.Y)^2 and not self.IsTurning then
           self.X = self.NextStop.X
@@ -116,12 +131,50 @@ function love.load()
         end
         
       end,
-      Init = function(self)
-        self.IsTurning = true
-        self.NextStop.X = Game.Map.Path[self.Step].X
-        self.NextStop.Y = Game.Map.Path[self.Step].Y
         
-        --self.Angle = math.atan2(self.NextStop.Y - self.Y, self.NextStop.X - self.X)
+      Init = function(self)
+        --step init with Node id NextNodePathID of Game.Map.Path
+        local Node = Game.Map.Path[NextNodePathID]
+        local StepX, StepY = self.X, self.Y
+        while (StepX - Node.X)^2 + (StepY - Node.Y)^2 > self.StepLenght and #self.Step < self.StepMaxNumber do
+          local Angle = math.atan2(self.Y - Node.Y, self.X - Node.X)
+          local Step = {
+            X = self.X,
+            Y = self.Y,
+            VX = math.cos(Angle),
+            VY = math.sin(Angle),
+          }
+          table.insert(self.Step, Step)
+          StepX, StepY = Step.X, Step.Y
+        end
+        
+        if #self.Step < self.StepMaxNumber then
+          
+          local Decimal = 0
+          local max = 0
+          
+          if NextNodePathID < #Game.Map.Path then NextNodePathID=NextNodePathID+1 else NextNodePathID=1 end
+          local NextNode = Game.Map.Path[NextNodePathID]
+          
+          local Angle = math.atan2(Node.Y - NextNode.Y, Node.X - NextNode.X)
+          local VX, VY = math.cos(Angle), math.sin(Angle)
+          
+          while Decimal < 5 do
+            local t = 0
+            
+            while true do
+              if self.Step then
+                max = (self.Step[#self.Step].X - Node.X + VX*t)^2 + (self.Step[#self.Step].Y - Node.Y + VY*t)^2
+              else max = (self.X - Node.X + VX*t)^2 + (self.Y - Node.Y + VY*t)^2 end
+              t=t+1
+              if max > self.StepLenght then break end
+            end
+            
+            Decimal = Decimal+1
+          end
+          
+        end
+        
       end,
     },
     Map = 
